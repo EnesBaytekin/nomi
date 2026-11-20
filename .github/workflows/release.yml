@@ -86,3 +86,13 @@ jobs:
         with:
           files: release/*
           generate_release_notes: true
+          body: |
+            ## Hızlı Kurulum (Linux/macOS)
+
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash -s -- ${{ github.ref_name }}
+            ```
+
+            Betik OS/mimariyi algılar, binary'yi `/opt/nomi` altına kurar, `.env` yoksa üretir (gizli anahtarları otomatik yazar) ve systemd servisini başlatır. macOS'ta binary kurulur, servisi elle çalıştırırsınız. Windows için `nomi-windows-amd64.zip` arşivini indirin.
+
+            Güncelleme: aynı komutu yeni sürümle tekrar çalıştırın — `.env` ve veritabanı korunur.
