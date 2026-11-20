@@ -1,154 +1,149 @@
-# Nomi 💰
+# Nomi
 
-Kişisel gider takibi — mobil öncelikli web uygulaması (PWA). Cebindeki her harcamayı **tutar + tür** seçimiyle saniyeler içinde kaydet; kategorilere göre özet, grafikler ve saatlik desenler üzerinden harcama alışkanlıklarını gör.
+Türkçe, mobil öncelikli kişisel harcama takibi. **Tek binary** — web arayüzü içine gömülü, veritabanı SQLite. Sunucuya at, çalıştır, bitti.
 
-> **Nomi** yerel çalışır, verileriniz kendi sunucunuzda şifreli tutulur. Sıfır bulut bağımlılığı.
+![Go](https://img.shields.io/badge/Go-1.26-00ADD8) ![PWA](https://img.shields.io/badge/PWA-kurulumlu-5A0FC8)
 
----
+## Öne çıkanlar
 
-## Özellikler
+- **Tek dosya dağıtım:** frontend (React + Vite + PWA) Go binary'sine gömülü (`go:embed`). Ayrı Node process'i, ayrı nginx statik servisi yok.
+- **Hızlı giriş:** tutar + tür; birkaç dokunuşta kayıt.
+- **Türler & kategoriler:** hazır 12 tür (Yemek, Abur cubur, Ulaşım, Yapay zeka, Sunucu, Telefon, Hediye, Altın, Borsa, Konaklama, Kişisel, Eğlence); ayarlardan ekle/düzenle/arşivle/sırala.
+- **İstatistikler:** aylık/günlük grafikler, kategori ve tür kırılımı, geçen ayla karşılaştırma, saat dağılımı, takvim ısı haritası.
+- **Çok kullanıcılı:** ilk kullanıcı yönetici olur; yönetici kullanıcı ekler/siler.
+- **Şifreli veri:** tutar + not, kullanıcı başına DEK ile AES-256-GCM şifreli; DEK'ler `MASTER_KEY` ile sarılı saklanır. DB dosyası ele geçse bile veri okunamaz.
+- **Modern kimlik doğrulama:** 10 dakikalık JWT erişim tokenı; httpOnly çerezdeki refresh token 7 gün kayan pencereyle her girişte uzar ve döndürülür; token tekrar kullanımı (replay) tespit edilirse oturum ailesi iptal edilir.
+- **Offline PWA:** service worker ile kurulabilir; Android'de "Ana ekrana ekle".
 
-- **Hızlı giriş** — Ana ekranda tutarı yaz, türünü seç, bitti. Tek dokunuşla sık kullanılan türler.
-- **Türler & kategoriler** — Yemek, Abur cubur, Ulaşım, Yapay zeka, Sunucu, Telefon, Hediye, Altın, Borsa, Konaklama, Kişisel, Eğlence hazır gelir; hepsi Ayarlar'dan düzenlenebilir. Kategoriler türleri gruplar; istatistikler kategori bazında toplanır.
-- **İstatistikler** — Günlük/aylık grafikler, kategori/tür seçimi ve karşılaştırması, aylar arası değişim oranları, saatlik harcama deseni, takvim ısı haritası.
-- **Geçmiş** — Ay ay liste, satır içi düzenleme ve silme, CSV dışa aktarma.
-- **PWA** — Android ana ekranına kurulur, tam ekran çalışır; masaüstünde de duyarlı (responsive) arayüz.
-- **Çok kullanıcılı** — Sunucuda birden fazla yerel kullanıcı tanımlanabilir; her kullanıcının verisi ayrı tutulur ve kendi anahtarıyla şifrelenir.
+## Neden SQLite (zaman serisi DB değil)?
 
-## Mimari
+Harcama verisi yazım hacmi düşük ama **düzenleme/silme yoğun** bir kayıt kümesidir; istatistikler tür–kategori **join'leri** ve ay/gün/saat bucket'lamasıyla şekillenir. Zaman serisi veritabanları (retention, downsampling) silmeyi/düzenlemeyi zorlaştırır ve bu join'lere uygun değildir. SQLite tek dosyada işlem garantisi (ACID), tam metin aramaya gerek olmayan basit sorgular ve sıfır yönetim yükü sunar; satır bazlı şifreleme ile de doğal uyumludur. Binary içinde cgo'suz (`modernc.org/sqlite`) gelir — kurulum gerektirmez.
 
-```
-nomi/
-├── server/   Fastify 5 + better-sqlite3 + zod   (REST API, kimlik doğrulama, şifreleme)
-├── web/      React 18 + Vite + Tailwind 4 + Recharts (PWA istemcisi)
-└── data/     SQLite veritabanı (üretim, git'e girmez)
-```
+## Sürüm indirme (önerilen)
 
-Tek komutla geliştirme: `npm run dev` (API + Vite birlikte ayağa kalkar; `/api` istekleri proxy'lenir).
+[Releases](https://github.com/EnesBaytekin/nomi/releases) sayfasından platformunuza uygun arşivi indirin:
 
-## Neden SQLite (ilişkisel) — zaman serisi veritabanı değerlendirmesi
-
-Gider verisi "zamanla işaretlenen değerler" gibi görünse de zaman serisi (TSDB) bir veritabanı bu kullanım için uygun değil:
-
-| Kriter | TSDB (InfluxDB, Timescale…) | İlişkisel (SQLite) |
-|---|---|---|
-| Yazma deseni | Yüksek frekanslı, değiştirilemez kayıt | Kişide günde birkaç kayıt — arka plan gereksiz |
-| Düzeltme/silme | Zor / modele aykırı | Doğal — yanlış girişler düzenlenir |
-| Sorgular | Zaman aralığı agregasyonlarına odaklı | Kullanıcı, kategori, tür ile **join + gruplama** serbest |
-| Şifreli satır verisi | Zorlanır | Satır bazlı şifreleme kolay |
-| İşletim maliyeti | Ayrı servis, bellek tüketimi | Tek dosya, tek proses, sıfır bakım |
-| Yedekleme | Anlık görüntü araçları | `cp` / `sqlite3 .backup` |
-
-Kullanıcı başına günde ~10 kayıtla yıllık ~4.000 satır — SQLite bu hacmi haber bile etmez. Kategori/tür/join ağırlıklı sorgular, satır bazlı şifreleme ihtiyacı ve "tek dosya yedekle" sadeliği ilişkisel modeli açık ara öne çıkarır. MySQL/PostgreSQL'e geçiş gerekirse zaten standart SQL yazıyoruz; şema taşınabilir.
-
-## Güvenlik
-
-- **Şifreler** `scrypt` ile (kullanıcıya özel salt) hash'lenir; düz metin hiçbir yerde durmaz.
-- **Access token** — JWT (HS256), **10 dakika** ömür. Sessiz yenilenir, kullanıcıyı rahatsız etmez.
-- **Refresh token** — opak rastgele token, veritabanında SHA-256 özeti tutulur; **7 gün** ömür ve **kayan pencere**: uygulamayı her açışınızda süre sıfırlanır. Bir hafta boyunca en az bir kez girerseniz şifre sorulmaz.
-- **Rotasyon + replay koruması** — Her yenilemede refresh token değişir; eski token yeniden kullanılırsa ailenin tamamı iptal edilir.
-- **Veri şifreleme** — Gider `{tutar, not}` alanları **AES-256-GCM** ile şifreli saklanır. Kullanıcı başına rastgele **DEK** üretilir, DEK yalnızca `MASTER_KEY` ile sarmalanır (envelope şifreleme). DB dosyası çalınsa bile veriler okunamaz.
-- **Çerez** — Refresh çerezi `httpOnly`, `SameSite=Strict`, `Path=/api/auth`; `COOKIE_SECURE=true` ile yalnız HTTPS.
-- **Kullanıcı verisi izolasyonu** — Tüm sorgular oturum sahibiyle sınırlıdır.
-
-## Geliştirme Kurulumu
-
-Gereksinim: Node.js 20+ (22 önerilir)
+| Dosya | Platform |
+|---|---|
+| `nomi-linux-amd64.tar.gz` | Linux 64-bit (çoğu VPS) |
+| `nomi-linux-arm64.tar.gz` | Linux ARM64 (Oracle/AWS Graviton, Raspberry Pi 4 64-bit) |
+| `nomi-linux-arm.tar.gz` | Linux ARMv7 (Raspberry Pi 32-bit) |
+| `nomi-darwin-*.tar.gz` | macOS (Intel / Apple Silicon) |
+| `nomi-windows-amd64.zip` | Windows 64-bit |
 
 ```bash
-git clone https://github.com/EnesBaytekin/nomi.git
-cd nomi
-npm install
-
-# gizli anahtarları üret
+tar xzf nomi-linux-amd64.tar.gz
 cp .env.example .env
-openssl rand -base64 32   # → JWT_SECRET
-openssl rand -base64 32   # → MASTER_KEY
-
-npm run dev
-# API   → http://localhost:3000
-# Web   → http://localhost:5173
+nano .env   # JWT_SECRET ve MASTER_KEY'i doldur: openssl rand -base64 32
+./nomi
 ```
 
-İlk açılışta `/api/auth/status` `needsSetup` döner; arayüz **ilk kullanıcıyı yönetici olarak** oluşturur.
+Arayüz `http://<sunucu>:3000` adresinde. İlk açılışta yönetici hesabı kurulumu yapılır. Sürümü doğrulamak için: `./nomi -version`.
 
-### Ortam değişkenleri
+> **Önemli:** `MASTER_KEY` kaybolursa şifreli veriler kurtarılamaz. Parola yöneticinizde yedekleyin.
 
-| Değişken | Açıklama | Varsayılan |
-|---|---|---|
-| `JWT_SECRET` | JWT imza anahtarı (32 byte, base64) — **zorunlu** | — |
-| `MASTER_KEY` | Veri şifreleme ana anahtarı (32 byte, base64) — **zorunlu**, kaybedilirse veriler kurtarılamaz | — |
-| `HOST` | Sunucu adresi | `0.0.0.0` |
-| `PORT` | Sunucu portu | `3000` |
-| `DB_PATH` | SQLite dosya yolu (çalışma dizinine göre) | `./data/nomi.db` |
-| `COOKIE_SECURE` | Refresh çerezi yalnız HTTPS'de taşınır | `false` |
-| `NODE_ENV` | `production` → statik web arayüzü `web/dist` servis edilir | `development` |
-| `WEB_ORIGIN` | Geliştirme CORS kaynağı | `http://localhost:5173` |
+## Sunucu kurulumu (systemd)
 
-## Üretim Dağıtımı
+```ini
+# /etc/systemd/system/nomi.service
+[Unit]
+Description=Nomi harcama takibi
+After=network.target
 
-### Docker (önerilen)
+[Service]
+User=nomi
+WorkingDirectory=/opt/nomi
+ExecStart=/opt/nomi/nomi
+Restart=on-failure
+# Alternatif: gizli anahtarları ortam değişkeni olarak da verebilirsiniz
+# Environment=JWT_SECRET=... MASTER_KEY=... COOKIE_SECURE=true
+
+[Install]
+WantedBy=multi-user.target
+```
 
 ```bash
-cp .env.example .env       # anahtarları üret, COOKIE_SECURE=true yap (TLS arkasında)
-docker compose up -d --build
-# uygulama http://localhost:3000 üzerinde (web + API aynı sunucuda)
+sudo systemctl daemon-reload && sudo systemctl enable --now nomi
 ```
 
-`NODE_ENV=production` iken Fastify, `web/dist` çıktısını da servis eder; tek konteyner yeterlidir. Veritabanı konteyner içinde `/app/data` altındadır — compose bunu `./data` klasörüne bağlar.
-
-### Sunucu + TLS
-
-En kolay yol Caddy (otomatik Let's Encrypt):
+İnternete açarken önüne TLS koyun (Caddy önerilir):
 
 ```
 # /etc/caddy/Caddyfile
-nomi.ornek.com {
+harcama.ornek.com {
     reverse_proxy localhost:3000
 }
 ```
 
-`COOKIE_SECURE=true` ve `NODE_ENV=production` unutmayın.
-
-### Manuel (Docker'sız)
-
-```bash
-npm ci
-npm run build          # web/dist üretir
-NODE_ENV=production npm start
-```
+TLS kullanıyorsanız `.env` içinde `COOKIE_SECURE=true` yapın.
 
 ## Yedekleme
 
-SQLite tek dosyadır; kopyalamadan önce tutarlılık için:
+Tek dosya: `data/nomi.db` (WAL yandaşlarıyla). Kopyalamak yeterli:
 
 ```bash
-sqlite3 data/nomi.db ".backup 'backups/nomi-$(date +%F).db'"
+sqlite3 data/nomi.db "VACUUM INTO 'yedek.db'"   # tutarlı anlık görüntü
 ```
 
-`MASTER_KEY` olmadan yedek **çözülemez** — anahtarı parola yöneticinizde ayrıca saklayın.
+Ayrıca uygulama içinden Ayarlar → **Yedek (JSON)** ile tüm veriyi dışa aktarabilirsiniz.
 
-## PWA Kurulumu (Android)
+## Yapılandırma
 
-1. Chrome ile uygulamayı açın.
-2. Menü → **Ana ekrana ekle** (veya adres çubuğundaki kur simgesi).
-3. Nomi, kendi simgesiyle tam ekran açılır; çevrimdışıkalınca son görüntülenmiş sayfalar önbellekten çalışır, veriler çevrimiçi eşitlenir.
+| Değişken | Varsayılan | Açıklama |
+|---|---|---|
+| `JWT_SECRET` | — (**zorunlu**) | 32 byte base64. `openssl rand -base64 32` |
+| `MASTER_KEY` | — (**zorunlu**) | 32 byte base64. Veri şifreleme ana anahtarı |
+| `HOST` | `0.0.0.0` | Dinlenecek adres |
+| `PORT` | `3000` | Dinlenecek port |
+| `DB_PATH` | `./data/nomi.db` | SQLite dosya yolu |
+| `COOKIE_SECURE` | `false` | Refresh çerezi yalnız HTTPS'te taşınır |
 
-## API Özeti
+`.env` dosyası binary'nin çalışma dizininde (veya bir üst dizinde) aranır; ortam değişkenleri önceliklidir.
 
-| Yol | Açıklama |
-|---|---|
-| `POST /api/auth/setup` | İlk kullanıcıyı yönetici olarak oluşturur (yalnız kullanıcı yokken) |
-| `POST /api/auth/login` | Oturum açar (access + refresh çerezi) |
-| `POST /api/auth/refresh` | Access token yeniler, refresh token döndürür |
-| `POST /api/auth/logout` | Oturumu kapatır |
-| `GET /api/auth/status` | Kurulum gerekli mi / oturum açık mı |
-| `GET/POST/PATCH/DELETE /api/expenses` | Gider CRUD (şifreli veri) |
-| `GET/POST/PATCH/DELETE /api/catalog/*` | Kategori ve tür yönetimi |
-| `GET /api/stats/monthly` | Aylık istatistik paketi (özet, günlük, kategori, tür, saatlik) |
-| `GET /api/export/csv` | CSV dışa aktarma |
-| `GET /api/users` | Kullanıcı listesi (yalnız yönetici) |
+## Geliştirme
 
-## Lisans
+Gereksinimler: **Go 1.26+**, **Node 20+**.
 
-MIT
+```bash
+npm install && npm install --prefix web
+npm run dev          # go run . (:3000 API) + vite (:5173, /api proxy)
+```
+
+Üretim derlemesi:
+
+```bash
+npm run build        # web/dist üretilir (binary'ye gömülür)
+npm run build:server # ./nomi binary'si
+```
+
+Dizinler:
+
+```
+main.go, internal/          Go backend (config, store, auth, cryptoutil, httpapi)
+web/                        React + Vite + Tailwind arayüz (dist → binary'ye gömülür)
+.github/workflows/          CI (derleme doğrulama) + Release (tag → binary'ler)
+```
+
+## Sürüm çıkarma
+
+```bash
+git tag v1.2.0 && git push origin v1.2.0
+```
+
+GitHub Actions 6 platform için binary derler (arayüz gömülü), `.env.example` ile paketler ve Release'e ekler.
+
+## API özeti
+
+Tüm uçlar `/api` önekiyle; kimlik `Authorization: Bearer <accessToken>`.
+
+- `POST /auth/setup` · `POST /auth/login` · `POST /auth/refresh` · `POST /auth/logout`
+- `GET /auth/status` · `GET /auth/me` · `POST /auth/password`
+- `GET /home` — bugünün/ayın toplamı, türler, son kullanılanlar
+- `POST /expenses` · `GET /expenses?from&to&typeId&limit&offset` · `PATCH /expenses/{id}` · `DELETE /expenses/{id}`
+- `GET /catalog` · `POST /catalog/swap` · `POST|PATCH|DELETE /categories[/{id}]` · `POST|PATCH|DELETE /types[/{id}]`
+- `GET /stats/monthly?months&tz`
+- `GET /export?format=json|csv`
+- `GET /users` · `POST /users` · `DELETE /users/{id}` (yönetici)
+- `GET /health` — sağlık/sürüm
+
+Lisans: MIT
