@@ -29,7 +29,7 @@ import (
 // version, release derlemelerinde -ldflags "-X main.version=vX.Y.Z" ile basılır.
 var version = "dev"
 
-//go:embed all:web
+//go:embed all:web/dist
 var webDist embed.FS
 
 func main() {
@@ -61,17 +61,9 @@ func main() {
 	deks := auth.NewDEKCache(cfg.MasterKey)
 	api := httpapi.New(cfg, st, au, deks, version)
 
-	// NOMI_DEV=1 ile arayüz diskten servis edilir (go run + tarayıcı yenile ile
-	// ön yüz geliştirmesi; ayrı derleme gerekmez).
-	var dist fs.FS
-	if os.Getenv("NOMI_DEV") == "1" {
-		dist = os.DirFS("web")
-		log.Println("nomi: geliştirme modu — arayüz ./web diskten servis ediliyor")
-	} else {
-		dist, err = fs.Sub(webDist, "web")
-		if err != nil {
-			log.Fatalf("nomi: gömülü arayüz okunamadı: %v", err)
-		}
+	dist, err := fs.Sub(webDist, "web/dist")
+	if err != nil {
+		log.Fatalf("nomi: gömülü arayüz okunamadı: %v", err)
 	}
 
 	mux := http.NewServeMux()

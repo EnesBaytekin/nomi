@@ -15,11 +15,23 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
       - name: Go vet + test + build
         run: |
           go vet ./...
           go test ./...
           go build ./...
+
+      - name: Web typecheck + build
+        run: |
+          npm ci --prefix web
+          npm run typecheck --prefix web
+          npm run build --prefix web
 
       - name: Binary derleniyor mu (gömülü arayüzle)
         run: go build -trimpath -o /tmp/nomi-ci .
