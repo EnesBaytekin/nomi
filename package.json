@@ -1,6 +1,6 @@
 {
   "name": "nomi",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Nomi — kişisel gider takibi (Go + gömülü React PWA, tek binary)",
   "type": "module",

@@ -19,7 +19,27 @@ Türkçe, mobil öncelikli kişisel harcama takibi. **Tek binary** — web aray�
 
 Harcama verisi yazım hacmi düşük ama **düzenleme/silme yoğun** bir kayıt kümesidir; istatistikler tür–kategori **join'leri** ve ay/gün/saat bucket'lamasıyla şekillenir. Zaman serisi veritabanları (retention, downsampling) silmeyi/düzenlemeyi zorlaştırır ve bu join'lere uygun değildir. SQLite tek dosyada işlem garantisi (ACID), tam metin aramaya gerek olmayan basit sorgular ve sıfır yönetim yükü sunar; satır bazlı şifreleme ile de doğal uyumludur. Binary içinde cgo'suz (`modernc.org/sqlite`) gelir — kurulum gerektirmez.
 
-## Sürüm indirme (önerilen)
+## Hızlı Kurulum
+
+Linux sunucuda tek satır — OS/mimariyi algılar, binary'yi indirir, `.env`'i üretir, systemd servisini kurar ve başlatır:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/EnesBaytekin/nomi/main/install.sh | bash
+```
+
+Belirli bir sürümü kurmak (veya güncellemek) için sürümü parametre olarak verin:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/EnesBaytekin/nomi/main/install.sh | bash -s -- v1.0.0
+```
+
+- Betik en son sürümü [Releases](https://github.com/EnesBaytekin/nomi/releases) üzerinden çeker (`linux amd64/arm64/armv7`, `darwin amd64/arm64` otomatik seçilir).
+- `.env` yalnızca yoksa üretilir; gizli anahtarlar `openssl rand -base64 32` ile yazılır. Yeniden çalıştırmak güvenli bir **güncelleme**dir — `.env` ve veritabanı korunur.
+- Servis durumu: `systemctl status nomi` · loglar: `journalctl -u nomi -f`.
+- macOS'ta betik binary'yi `NOMI_DIR` altına kurar, servisi elle çalıştırırsınız. Windows için aşağıdaki elle kurulumu kullanın.
+- **Private depo:** indirmeler token ister; `export GITHUB_TOKEN=...` sonrasında `curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/EnesBaytekin/nomi/main/install.sh | bash` çalıştırın. Repo public'te token gerekmez.
+
+## Elle kurulum
 
 [Releases](https://github.com/EnesBaytekin/nomi/releases) sayfasından platformunuza uygun arşivi indirin:
 
@@ -43,6 +63,8 @@ Arayüz `http://<sunucu>:3000` adresinde. İlk açılışta yönetici hesabı ku
 > **Önemli:** `MASTER_KEY` kaybolursa şifreli veriler kurtarılamaz. Parola yöneticinizde yedekleyin.
 
 ## Sunucu kurulumu (systemd)
+
+> Bu adımların tamamını `install.sh` otomatik yapar — aşağıdaki birim dosyası betiğin yazdığıyla aynıdır, elle kurulum yapanlar içindir.
 
 ```ini
 # /etc/systemd/system/nomi.service
@@ -121,6 +143,7 @@ Dizinler:
 ```
 main.go, internal/          Go backend (config, store, auth, cryptoutil, httpapi)
 web/                        React + Vite + Tailwind arayüz (dist → binary'ye gömülür)
+install.sh                  tek satır kurulum betiği (curl | bash)
 .github/workflows/          CI (derleme doğrulama) + Release (tag → binary'ler)
 ```
 
