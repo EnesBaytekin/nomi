@@ -6,7 +6,7 @@ Türkçe, mobil öncelikli kişisel harcama takibi. **Tek binary** — web aray�
 
 ## Öne çıkanlar
 
-- **Tek dosya dağıtım:** frontend (React + Vite + PWA) Go binary'sine gömülü (`go:embed`). Ayrı Node process'i, ayrı nginx statik servisi yok.
+- **Tek dosya dağıtım:** frontend (bağımlılıksız vanilla JS + PWA) Go binary'sine gömülü (`go:embed`). Node, npm, derleme adımı yok — `go build` hepsini halleder.
 - **Hızlı giriş:** tutar + tür; birkaç dokunuşta kayıt.
 - **Türler & kategoriler:** hazır 12 tür (Yemek, Abur cubur, Ulaşım, Yapay zeka, Sunucu, Telefon, Hediye, Altın, Borsa, Konaklama, Kişisel, Eğlence); ayarlardan ekle/düzenle/arşivle/sırala.
 - **İstatistikler:** aylık/günlük grafikler, kategori ve tür kırılımı, geçen ayla karşılaştırma, saat dağılımı, takvim ısı haritası.
@@ -124,25 +124,27 @@ Ayrıca uygulama içinden Ayarlar → **Yedek (JSON)** ile tüm veriyi dışa ak
 
 ## Geliştirme
 
-Gereksinimler: **Go 1.26+**, **Node 20+**.
+Gereksinim: **yalnız Go 1.26+**. Ön yüz düz statik dosyaldır (`web/`); Node/npm/derleme yoktur.
 
 ```bash
-npm install && npm install --prefix web
-npm run dev          # go run . (:3000 API) + vite (:5173, /api proxy)
+make dev             # go run + NOMI_DEV=1: arayüz ./web diskten servis edilir
+                     # kaynak dosyayı düzenle → tarayıcıyı yenile, bitti
 ```
 
-Üretim derlemesi:
+Üretim derlemesi (arayüz binary'ye gömülür):
 
 ```bash
-npm run build        # web/dist üretilir (binary'ye gömülür)
-npm run build:server # ./nomi binary'si
+make build           # ./nomi
+./nomi -version
 ```
+
+Kalite kontrolleri: `make vet`, `make test`.
 
 Dizinler:
 
 ```
 main.go, internal/          Go backend (config, store, auth, cryptoutil, httpapi)
-web/                        React + Vite + Tailwind arayüz (dist → binary'ye gömülür)
+web/                        vanilla JS arayüz (index.html, css/, js/ ES modülleri, PWA)
 install.sh                  tek satır kurulum betiği (curl | bash)
 .github/workflows/          CI (derleme doğrulama) + Release (tag → binary'ler)
 ```

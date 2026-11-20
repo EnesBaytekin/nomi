@@ -25,10 +25,10 @@ func (a *API) staticHandler(dist fs.FS) http.Handler {
 			}
 			index, err2 := fs.ReadFile(dist, "index.html")
 			if err2 != nil {
-				// Arayüz henüz derlenmemiş.
+				// Arayüz dosyaları eksik.
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				w.WriteHeader(404)
-				_, _ = w.Write([]byte("Nomi web arayüzü derlenmemiş. 'npm run build --prefix web' komutunu çalıştırın."))
+				_, _ = w.Write([]byte("Nomi web arayüzü bulunamadı."))
 				return
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -37,10 +37,11 @@ func (a *API) staticHandler(dist fs.FS) http.Handler {
 			_, _ = w.Write(index)
 			return
 		}
-		// Hash'li asset dosyaları kalıcı önbelleğe alınır.
-		if strings.HasPrefix(p, "assets/") {
-			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-		} else {
+		// İkonlar değişmez: haftalık önbellek. Kaynak dosyalar: her istekte doğrula.
+		switch {
+		case strings.HasSuffix(p, ".png") || strings.HasSuffix(p, ".svg"):
+			w.Header().Set("Cache-Control", "public, max-age=604800")
+		default:
 			w.Header().Set("Cache-Control", "no-cache")
 		}
 		fileServer.ServeHTTP(w, r)
