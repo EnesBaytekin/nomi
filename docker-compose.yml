@@ -1,0 +1,17 @@
+services:
+  nomi:
+    build: .
+    container_name: nomi
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DB_PATH: /app/data/nomi.db
+      HOST: 0.0.0.0
+      # TLS arkasında (Caddy/nginx) yayına alırken true yapın
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+    volumes:
+      - ./data:/app/data

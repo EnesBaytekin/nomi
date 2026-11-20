@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+dist
+**/dist
+web/dev-dist
+data
+.env
+.env.local
+*.log
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+README.md
