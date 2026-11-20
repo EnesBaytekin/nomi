@@ -1,14 +1,5 @@
-# Bağımlılıklar
+# Bağımlılıklar (repo Node'suz; yine de korunur)
 node_modules/
-
-# Derleme çıktıları
-/dist/
-web/dev-dist/
-web/sw.js
-web/workbox-*.js
-# web/dist gömülür: yalnız placeholder takipte kalır, geri kalanı build çıktısı
-web/dist/*
-!web/dist/.gitkeep
 
 # Go
 /nomi

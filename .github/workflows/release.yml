@@ -28,18 +28,6 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      # Web arayüzünü derle → web/dist (binary'ye gömülür)
-      - name: Build web client
-        run: |
-          npm ci --prefix web
-          npm run build --prefix web
-
       - name: Build binary
         env:
           GOOS: ${{ matrix.goos }}
