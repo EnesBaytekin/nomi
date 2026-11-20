@@ -6,7 +6,7 @@ Türkçe, mobil öncelikli kişisel harcama takibi. **Tek binary** — web aray�
 
 ## Öne çıkanlar
 
-- **Tek dosya dağıtım:** frontend (bağımlılıksız vanilla JS + PWA) Go binary'sine gömülü (`go:embed`). Node, npm, derleme adımı yok — `go build` hepsini halleder.
+- **Tek dosya dağıtım:** frontend (React + Vite + Tailwind + PWA) Go binary'sine gömülü (`go:embed`). Sunucuda yalnız tek binary çalışır — ayrı Node process'i, ayrı nginx statik servisi yok.
 - **Hızlı giriş:** tutar + tür; birkaç dokunuşta kayıt.
 - **Türler & kategoriler:** hazır 12 tür (Yemek, Abur cubur, Ulaşım, Yapay zeka, Sunucu, Telefon, Hediye, Altın, Borsa, Konaklama, Kişisel, Eğlence); ayarlardan ekle/düzenle/arşivle/sırala.
 - **İstatistikler:** aylık/günlük grafikler, kategori ve tür kırılımı, geçen ayla karşılaştırma, saat dağılımı, takvim ısı haritası.
@@ -124,27 +124,32 @@ Ayrıca uygulama içinden Ayarlar → **Yedek (JSON)** ile tüm veriyi dışa ak
 
 ## Geliştirme
 
-Gereksinim: **yalnız Go 1.26+**. Ön yüz düz statik dosyaldır (`web/`); Node/npm/derleme yoktur.
+Gereksinimler: **Go 1.26+**, **Node 20+** (yalnızca ön yüz geliştirme/derlemesi için).
 
 ```bash
-make dev             # go run + NOMI_DEV=1: arayüz ./web diskten servis edilir
-                     # kaynak dosyayı düzenle → tarayıcıyı yenile, bitti
+npm install --prefix web   # ön yüz bağımlılıkları (tek sefer)
+
+go run .                   # 1. terminal: API + gömülü arayüz (:3000)
+npm run dev --prefix web   # 2. terminal: vite (:5173, /api proxy → :3000)
 ```
 
-Üretim derlemesi (arayüz binary'ye gömülür):
+Vite geliştirme sunucusunda ön yüz kaynağını düzenleyin — HMR ile tarayıcı anında güncellenir; API istekleri otomatik olarak `:3000`'e proxy'lenir.
+
+Üretim derlemesi (arayüz `web/dist` üretilir ve binary'ye gömülür):
 
 ```bash
-make build           # ./nomi
+npm run build --prefix web
+go build -o nomi .
 ./nomi -version
 ```
 
-Kalite kontrolleri: `make vet`, `make test`.
+Kalite kontrolleri: `go vet ./...`, `go test ./...`, `npm run typecheck --prefix web`.
 
 Dizinler:
 
 ```
 main.go, internal/          Go backend (config, store, auth, cryptoutil, httpapi)
-web/                        vanilla JS arayüz (index.html, css/, js/ ES modülleri, PWA)
+web/                        React + Vite + Tailwind arayüzü (derleme çıktısı web/dist → binary'ye gömülür)
 install.sh                  tek satır kurulum betiği (curl | bash)
 .github/workflows/          CI (derleme doğrulama) + Release (tag → binary'ler)
 ```
