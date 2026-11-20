@@ -1,0 +1,22 @@
+{
+  "name": "nomi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nomi — kişisel gider takibi (PWA + Fastify + SQLite)",
+  "type": "module",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w server\" \"npm run dev -w web\"",
+    "dev:server": "npm run dev -w server",
+    "dev:web": "npm run dev -w web",
+    "build": "npm run build -w web",
+    "start": "npm run start -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

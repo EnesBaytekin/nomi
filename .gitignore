@@ -1,0 +1,17 @@
+# Bağımlılıklar
+node_modules/
+
+# Derleme çıktıları
+dist/
+web/dev-dist/
+web/sw.js
+web/workbox-*.js
+
+# Veritabanı ve ortam
+data/
+.env
+.env.local
+
+# Logs ve sistem
+*.log
+.DS_Store
