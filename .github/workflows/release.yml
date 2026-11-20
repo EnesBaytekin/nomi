@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goos: linux, goarch: amd64, ext: "", archive: tar.gz }
+          - { goos: linux, goarch: arm64, ext: "", archive: tar.gz }
+          - { goos: linux, goarch: arm, goarm: "7", ext: "", archive: tar.gz }
+          - { goos: darwin, goarch: amd64, ext: "", archive: tar.gz }
+          - { goos: darwin, goarch: arm64, ext: "", archive: tar.gz }
+          - { goos: windows, goarch: amd64, ext: .exe, archive: zip }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Web arayüzünü derle → web/dist (binary'ye gömülür)
+      - name: Build web client
+        run: |
+          npm ci --prefix web
+          npm run build --prefix web
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+        run: |
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" \
+            -o "out/nomi-${GOOS}-${GOARCH}${{ matrix.ext }}" .
+
+      - name: Package (tar.gz)
+        if: matrix.archive == 'tar.gz'
+        run: |
+          NAME="nomi-${{ matrix.goos }}-${{ matrix.goarch }}"
+          cd out
+          cp ../.env.example .
+          mkdir -p ../release
+          tar czf "../release/${NAME}.tar.gz" "nomi-${{ matrix.goos }}-${{ matrix.goarch }}" .env.example
+
+      - name: Package (zip)
+        if: matrix.archive == 'zip'
+        run: |
+          NAME="nomi-${{ matrix.goos }}-${{ matrix.goarch }}"
+          cd out
+          cp ../.env.example .
+          mkdir -p ../release
+          zip "../release/${NAME}.zip" "nomi-${{ matrix.goos }}-${{ matrix.goarch }}.exe" .env.example
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nomi-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: release/*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: release
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
