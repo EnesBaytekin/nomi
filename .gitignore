@@ -2,10 +2,18 @@
 node_modules/
 
 # Derleme çıktıları
-dist/
+/dist/
 web/dev-dist/
 web/sw.js
 web/workbox-*.js
+# web/dist gömülür: yalnız placeholder takipte kalır, geri kalanı build çıktısı
+web/dist/*
+!web/dist/.gitkeep
+
+# Go
+/nomi
+/nomi.exe
+/release/
 
 # Veritabanı ve ortam
 data/
