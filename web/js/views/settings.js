@@ -241,7 +241,7 @@ export function renderSettingsPage(container) {
       el(
         'p',
         { class: 'foot-note' },
-        'Nomi v1.0.0 · veriler sunucuda AES-256-GCM ile şifreli saklanır',
+        'Nomi v1.1.0 · veriler sunucuda AES-256-GCM ile şifreli saklanır',
       ),
     );
   }

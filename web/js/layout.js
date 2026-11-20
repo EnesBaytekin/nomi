@@ -66,7 +66,7 @@ export function buildShell(onNavigate) {
     { class: 'sidebar' },
     brand,
     sidebarNav,
-    el('div', { class: 'ver' }, 'Nomi v1.0.0'),
+    el('div', { class: 'ver' }, 'Nomi v1.1.0'),
   );
 
   const main = el('main', { class: 'main' });

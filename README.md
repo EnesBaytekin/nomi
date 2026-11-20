@@ -30,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/EnesBaytekin/nomi/main/install.sh |
 Belirli bir sürümü kurmak (veya güncellemek) için sürümü parametre olarak verin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EnesBaytekin/nomi/main/install.sh | bash -s -- v1.0.0
+curl -fsSL https://raw.githubusercontent.com/EnesBaytekin/nomi/main/install.sh | bash -s -- v1.1.0
 ```
 
 - Betik en son sürümü [Releases](https://github.com/EnesBaytekin/nomi/releases) üzerinden çeker (`linux amd64/arm64/armv7`, `darwin amd64/arm64` otomatik seçilir).
