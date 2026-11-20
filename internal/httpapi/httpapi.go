@@ -36,7 +36,7 @@ func New(cfg *config.Config, st *store.Store, au *auth.Service, deks *auth.DEKCa
 	return &API{cfg: cfg, st: st, auth: au, deks: deks, started: time.Now(), version: version}
 }
 
-// Register, tüm rotaları mux'a bağlar. staticFS, gömülü web arayüzü (web/).
+// Register, tüm rotaları mux'a bağlar. staticFS, gömülü web arayüzü (web/dist).
 func (a *API) Register(mux *http.ServeMux, staticFS fs.FS) {
 	// Sağlık
 	mux.HandleFunc("GET /api/health", a.handleHealth)
